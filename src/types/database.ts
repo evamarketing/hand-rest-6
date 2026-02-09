@@ -1,6 +1,6 @@
 // Custom types for the application
 
-export type AppRole = 'admin' | 'staff' | 'customer';
+export type AppRole = 'super_admin' | 'admin' | 'staff' | 'customer';
 export type BookingStatus = 'pending' | 'confirmed' | 'assigned' | 'in_progress' | 'completed' | 'cancelled';
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
 

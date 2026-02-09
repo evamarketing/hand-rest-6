@@ -455,6 +455,7 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       is_staff: { Args: never; Returns: boolean }
+      is_super_admin: { Args: never; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "staff" | "customer" | "super_admin"

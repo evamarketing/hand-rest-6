@@ -38,6 +38,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { useBookings, useUpdateBookingStatus } from '@/hooks/useBookings';
 import { usePackages } from '@/hooks/useServices';
 import { useToast } from '@/hooks/use-toast';
@@ -58,15 +59,16 @@ const statusColors: Record<BookingStatus, string> = {
 
 type Tab = 'dashboard' | 'bookings' | 'staff' | 'packages' | 'addons' | 'custom_features' | 'settings';
 
-function LoginForm({ onLogin }: { onLogin: (email: string, password: string) => Promise<void> }) {
-  const [email, setEmail] = useState('');
+function LoginForm({ onLogin }: { onLogin: (email: string, password: string, loginType: 'email' | 'mobile') => Promise<void> }) {
+  const [loginType, setLoginType] = useState<'email' | 'mobile'>('email');
+  const [emailOrMobile, setEmailOrMobile] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    await onLogin(email, password);
+    await onLogin(emailOrMobile, password, loginType);
     setLoading(false);
   };
 
@@ -84,15 +86,37 @@ function LoginForm({ onLogin }: { onLogin: (email: string, password: string) => 
             <p className="text-muted-foreground">HandRest Cleaning Solutions</p>
           </CardHeader>
           <CardContent>
+            {/* Login Type Toggle */}
+            <div className="flex gap-2 mb-6">
+              <Button
+                type="button"
+                variant={loginType === 'email' ? 'default' : 'outline'}
+                className="flex-1"
+                onClick={() => setLoginType('email')}
+              >
+                Super Admin (Email)
+              </Button>
+              <Button
+                type="button"
+                variant={loginType === 'mobile' ? 'default' : 'outline'}
+                className="flex-1"
+                onClick={() => setLoginType('mobile')}
+              >
+                Admin (Mobile)
+              </Button>
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="text-sm font-medium">Email</label>
+                <label className="text-sm font-medium">
+                  {loginType === 'email' ? 'Email' : 'Mobile Number'}
+                </label>
                 <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  type={loginType === 'email' ? 'email' : 'tel'}
+                  value={emailOrMobile}
+                  onChange={(e) => setEmailOrMobile(e.target.value)}
                   className="w-full mt-1 px-4 py-3 rounded-lg border border-input bg-background focus:ring-2 focus:ring-brand-teal focus:border-transparent"
-                  placeholder="admin@handrest.com"
+                  placeholder={loginType === 'email' ? 'superadmin@handrest.com' : '9876543210'}
                   required
                 />
               </div>
@@ -387,7 +411,28 @@ export default function AdminDashboard() {
   const { user, profile, signIn, signOut, loading: authLoading, role } = useAuth();
   const { toast } = useToast();
 
-  const handleLogin = async (email: string, password: string) => {
+  const handleLogin = async (emailOrMobile: string, password: string, loginType: 'email' | 'mobile') => {
+    let email = emailOrMobile;
+    
+    // If logging in with mobile, look up the email from profiles
+    if (loginType === 'mobile') {
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('phone', emailOrMobile)
+        .single();
+      
+      if (profileError || !profileData) {
+        toast({
+          title: 'Login Failed',
+          description: 'No account found with this mobile number',
+          variant: 'destructive',
+        });
+        return;
+      }
+      email = profileData.email;
+    }
+    
     const { error } = await signIn(email, password);
     if (error) {
       toast({
