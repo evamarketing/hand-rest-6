@@ -15,19 +15,17 @@ export interface CustomFeature {
 
 type CustomFeatureInput = Omit<CustomFeature, 'id' | 'created_at' | 'updated_at'>;
 
-const TABLE = 'custom_features' as any;
-
 export function useCustomFeatures() {
   return useQuery<CustomFeature[]>({
     queryKey: ['custom_features'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from(TABLE)
+        .from('custom_features')
         .select('*')
         .eq('is_active', true)
         .order('display_order');
       if (error) throw error;
-      return data as unknown as CustomFeature[];
+      return (data ?? []) as CustomFeature[];
     },
   });
 }
@@ -37,11 +35,11 @@ export function useAllCustomFeatures() {
     queryKey: ['custom_features', 'all'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from(TABLE)
+        .from('custom_features')
         .select('*')
         .order('display_order');
       if (error) throw error;
-      return data as unknown as CustomFeature[];
+      return (data ?? []) as CustomFeature[];
     },
   });
 }
@@ -50,7 +48,7 @@ export function useCreateCustomFeature() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: CustomFeatureInput) => {
-      const { data, error } = await supabase.from(TABLE).insert(input).select().single();
+      const { data, error } = await supabase.from('custom_features').insert(input).select().single();
       if (error) throw error;
       return data;
     },
@@ -62,7 +60,7 @@ export function useUpdateCustomFeature() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...input }: CustomFeatureInput & { id: string }) => {
-      const { data, error } = await supabase.from(TABLE).update(input).eq('id', id).select().single();
+      const { data, error } = await supabase.from('custom_features').update(input).eq('id', id).select().single();
       if (error) throw error;
       return data;
     },
@@ -74,7 +72,7 @@ export function useDeleteCustomFeature() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from(TABLE).delete().eq('id', id);
+      const { error } = await supabase.from('custom_features').delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['custom_features'] }),
