@@ -457,7 +457,7 @@ export type Database = {
       is_staff: { Args: never; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "staff" | "customer"
+      app_role: "admin" | "staff" | "customer" | "super_admin"
       booking_status:
         | "pending"
         | "confirmed"
@@ -593,7 +593,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "staff", "customer"],
+      app_role: ["admin", "staff", "customer", "super_admin"],
       booking_status: [
         "pending",
         "confirmed",
