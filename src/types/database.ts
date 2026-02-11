@@ -55,6 +55,9 @@ export interface Booking {
   created_at: string;
   updated_at: string;
   completed_at: string | null;
+  report_before: string | null;
+  required_staff_count: number;
+  panchayath_id: string | null;
   package?: Package;
   staff_assignments?: StaffAssignment[];
   payments?: Payment[];

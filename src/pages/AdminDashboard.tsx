@@ -48,7 +48,9 @@ import { PackagesTab } from '@/components/admin/PackagesTab';
 import { AddonsTab } from '@/components/admin/AddonsTab';
 import { CustomFeaturesTab } from '@/components/admin/CustomFeaturesTab';
 import { PanchayathsTab } from '@/components/admin/PanchayathsTab';
-import type { BookingStatus } from '@/types/database';
+import { StaffManagementTab } from '@/components/admin/StaffManagementTab';
+import { BookingDetailDialog } from '@/components/admin/BookingDetailDialog';
+import type { Booking, BookingStatus } from '@/types/database';
 
 const statusColors: Record<BookingStatus, string> = {
   pending: 'bg-yellow-100 text-yellow-800',
@@ -264,6 +266,8 @@ function BookingsTab() {
   const updateStatus = useUpdateBookingStatus();
   const { toast } = useToast();
   const [search, setSearch] = useState('');
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const filteredBookings = bookings?.filter(b => 
     b.booking_number.toLowerCase().includes(search.toLowerCase()) ||
@@ -278,6 +282,11 @@ function BookingsTab() {
     } catch {
       toast({ title: 'Failed to update status', variant: 'destructive' });
     }
+  };
+
+  const openBookingDetail = (booking: Booking) => {
+    setSelectedBooking(booking);
+    setDialogOpen(true);
   };
 
   return (
@@ -332,7 +341,7 @@ function BookingsTab() {
                 </TableRow>
               ) : (
                 filteredBookings.map(booking => (
-                  <TableRow key={booking.id}>
+                  <TableRow key={booking.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openBookingDetail(booking)}>
                     <TableCell className="font-medium">{booking.booking_number}</TableCell>
                     <TableCell>{booking.customer_name}</TableCell>
                     <TableCell>
@@ -349,18 +358,9 @@ function BookingsTab() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <select
-                        value={booking.status}
-                        onChange={(e) => handleStatusChange(booking.id, e.target.value as BookingStatus)}
-                        className="text-xs rounded border px-2 py-1"
-                      >
-                        <option value="pending">Pending</option>
-                        <option value="confirmed">Confirmed</option>
-                        <option value="assigned">Assigned</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="completed">Completed</option>
-                        <option value="cancelled">Cancelled</option>
-                      </select>
+                      <Badge className={statusColors[booking.status]}>
+                        {booking.status.replace('_', ' ')}
+                      </Badge>
                     </TableCell>
                     <TableCell>₹{booking.total_price.toLocaleString()}</TableCell>
                     <TableCell>
@@ -375,36 +375,17 @@ function BookingsTab() {
           </Table>
         </CardContent>
       </Card>
+
+      <BookingDetailDialog
+        booking={selectedBooking}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+      />
     </div>
   );
 }
 
-function StaffTab() {
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground">Staff Management</h1>
-        <Button variant="hero">
-          <UserPlus className="w-4 h-4 mr-2" />
-          Add Staff
-        </Button>
-      </div>
-      
-      <Card>
-        <CardContent className="py-12 text-center">
-          <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground mb-4">
-            Staff management coming soon. Create staff accounts to assign them to bookings.
-          </p>
-          <Button variant="outline">
-            <Plus className="w-4 h-4 mr-2" />
-            Create First Staff Account
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
+// StaffTab now uses StaffManagementTab component
 
 // PackagesTab and AddonsTab are now imported from components/admin
 
@@ -521,7 +502,7 @@ export default function AdminDashboard() {
       <main className="flex-1 p-8 overflow-auto">
         {activeTab === 'dashboard' && <DashboardTab />}
         {activeTab === 'bookings' && <BookingsTab />}
-        {activeTab === 'staff' && <StaffTab />}
+        {activeTab === 'staff' && <StaffManagementTab />}
         {activeTab === 'packages' && <PackagesTab />}
         {activeTab === 'addons' && <AddonsTab />}
         {activeTab === 'custom_features' && <CustomFeaturesTab />}

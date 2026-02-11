@@ -56,18 +56,21 @@ export type Database = {
           booking_id: string
           id: string
           staff_user_id: string
+          status: string
         }
         Insert: {
           assigned_at?: string
           booking_id: string
           id?: string
           staff_user_id: string
+          status?: string
         }
         Update: {
           assigned_at?: string
           booking_id?: string
           id?: string
           staff_user_id?: string
+          status?: string
         }
         Relationships: [
           {
@@ -96,8 +99,11 @@ export type Database = {
           floor_number: number | null
           id: string
           package_id: string | null
+          panchayath_id: string | null
           pincode: string
           property_sqft: number | null
+          report_before: string | null
+          required_staff_count: number | null
           scheduled_date: string
           scheduled_time: string
           special_instructions: string | null
@@ -121,8 +127,11 @@ export type Database = {
           floor_number?: number | null
           id?: string
           package_id?: string | null
+          panchayath_id?: string | null
           pincode: string
           property_sqft?: number | null
+          report_before?: string | null
+          required_staff_count?: number | null
           scheduled_date: string
           scheduled_time: string
           special_instructions?: string | null
@@ -146,8 +155,11 @@ export type Database = {
           floor_number?: number | null
           id?: string
           package_id?: string | null
+          panchayath_id?: string | null
           pincode?: string
           property_sqft?: number | null
+          report_before?: string | null
+          required_staff_count?: number | null
           scheduled_date?: string
           scheduled_time?: string
           special_instructions?: string | null
@@ -161,6 +173,13 @@ export type Database = {
             columns: ["package_id"]
             isOneToOne: false
             referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_panchayath_id_fkey"
+            columns: ["panchayath_id"]
+            isOneToOne: false
+            referencedRelation: "panchayaths"
             referencedColumns: ["id"]
           },
         ]
