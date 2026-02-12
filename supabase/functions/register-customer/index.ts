@@ -11,9 +11,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { name, mobile, password, panchayath_id, ward_number } = await req.json();
+    const { name, mobile, panchayath_id, ward_number } = await req.json();
 
-    if (!name || !mobile || !password || !panchayath_id || !ward_number) {
+    if (!name || !mobile || !panchayath_id || !ward_number) {
       return new Response(
         JSON.stringify({ error: "All fields are required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -34,6 +34,7 @@ Deno.serve(async (req) => {
     );
 
     const fakeEmail = `${cleanMobile}@customer.handrest.local`;
+    const autoPassword = `hr_${cleanMobile}_auto`;
 
     // Check if user already exists
     const { data: existingProfile } = await supabaseAdmin
@@ -52,7 +53,7 @@ Deno.serve(async (req) => {
     // Create auth user
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: fakeEmail,
-      password,
+      password: autoPassword,
       email_confirm: true,
       user_metadata: { full_name: name, phone: cleanMobile },
     });

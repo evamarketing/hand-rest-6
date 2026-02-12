@@ -68,6 +68,14 @@ export function StaffLoginForm({ onLogin, onSwitchToSignup }: Props) {
                   Sign Up
                 </button>
               </p>
+
+              <button
+                type="button"
+                onClick={() => window.location.href = '/admin'}
+                className="w-full mt-2 text-xs text-muted-foreground hover:text-secondary transition-colors"
+              >
+                Admin Access
+              </button>
             </form>
           </CardContent>
         </Card>
