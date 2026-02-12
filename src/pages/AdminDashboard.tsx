@@ -18,8 +18,10 @@ import {
   Puzzle,
   Sparkles,
   MapPin,
-  Shield
+  Shield,
+  Lock
 } from 'lucide-react';
+import { useMyPermissions, type PermissionTab } from '@/hooks/useAdminPermissions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -395,6 +397,7 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const { user, profile, signIn, signOut, loading: authLoading, role } = useAuth();
   const { toast } = useToast();
+  const { canViewTab, hasPermission } = useMyPermissions();
 
   const handleLogin = async (emailOrMobile: string, password: string, loginType: 'email' | 'mobile') => {
     let email = emailOrMobile;
@@ -442,17 +445,24 @@ export default function AdminDashboard() {
     return <LoginForm onLogin={handleLogin} />;
   }
 
-  const navItems = [
-    { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { id: 'bookings', icon: Calendar, label: 'Bookings' },
-    { id: 'staff', icon: Users, label: 'Staff' },
-    { id: 'packages', icon: Package, label: 'Packages' },
-    { id: 'addons', icon: Puzzle, label: 'Add-ons' },
-    { id: 'custom_features', icon: Sparkles, label: 'Custom Features' },
-    { id: 'panchayaths', icon: MapPin, label: 'Panchayaths' },
-    ...(role === 'super_admin' ? [{ id: 'permissions' as const, icon: Shield, label: 'Permissions' }] : []),
-    { id: 'settings', icon: Settings, label: 'Settings' },
-  ] as const;
+  const allNavItems = [
+    { id: 'dashboard' as const, icon: LayoutDashboard, label: 'Dashboard', permTab: 'dashboard' as PermissionTab },
+    { id: 'bookings' as const, icon: Calendar, label: 'Bookings', permTab: 'bookings' as PermissionTab },
+    { id: 'staff' as const, icon: Users, label: 'Staff', permTab: 'staff' as PermissionTab },
+    { id: 'packages' as const, icon: Package, label: 'Packages', permTab: 'packages' as PermissionTab },
+    { id: 'addons' as const, icon: Puzzle, label: 'Add-ons', permTab: 'addons' as PermissionTab },
+    { id: 'custom_features' as const, icon: Sparkles, label: 'Custom Features', permTab: 'custom_features' as PermissionTab },
+    { id: 'panchayaths' as const, icon: MapPin, label: 'Panchayaths', permTab: 'panchayaths' as PermissionTab },
+    ...(role === 'super_admin' ? [{ id: 'permissions' as const, icon: Shield, label: 'Permissions', permTab: null }] : []),
+    { id: 'settings' as const, icon: Settings, label: 'Settings', permTab: 'settings' as PermissionTab },
+  ];
+
+  // Filter nav items based on permissions (super_admin sees everything, admins see permitted tabs)
+  const navItems = allNavItems.filter(item => {
+    if (role === 'super_admin') return true;
+    if (!item.permTab) return false; // permissions tab only for super_admin
+    return canViewTab(item.permTab);
+  });
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -502,18 +512,26 @@ export default function AdminDashboard() {
       </aside>
       
       {/* Main Content */}
-      <main className="flex-1 p-8 overflow-auto">
-        {activeTab === 'dashboard' && <DashboardTab />}
-        {activeTab === 'bookings' && <BookingsTab />}
-        {activeTab === 'staff' && <StaffManagementTab />}
-        {activeTab === 'packages' && <PackagesTab />}
-        {activeTab === 'addons' && <AddonsTab />}
-        {activeTab === 'custom_features' && <CustomFeaturesTab />}
-        {activeTab === 'panchayaths' && <PanchayathsTab />}
+      <main className="flex-1 p-4 md:p-8 overflow-auto">
+        {activeTab === 'dashboard' && canViewTab('dashboard') && <DashboardTab />}
+        {activeTab === 'bookings' && canViewTab('bookings') && <BookingsTab />}
+        {activeTab === 'staff' && canViewTab('staff') && <StaffManagementTab />}
+        {activeTab === 'packages' && canViewTab('packages') && <PackagesTab />}
+        {activeTab === 'addons' && canViewTab('addons') && <AddonsTab />}
+        {activeTab === 'custom_features' && canViewTab('custom_features') && <CustomFeaturesTab />}
+        {activeTab === 'panchayaths' && canViewTab('panchayaths') && <PanchayathsTab />}
         {activeTab === 'permissions' && role === 'super_admin' && <PermissionManagementTab />}
-        {activeTab === 'settings' && (
+        {activeTab === 'settings' && canViewTab('settings') && (
           <div className="text-center py-12 text-muted-foreground">
             Settings coming soon...
+          </div>
+        )}
+        {/* Show access denied if admin doesn't have permission */}
+        {role === 'admin' && activeTab !== 'permissions' && !canViewTab(activeTab as PermissionTab) && (
+          <div className="text-center py-12">
+            <Lock className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+            <p className="text-lg font-medium text-foreground">Access Restricted</p>
+            <p className="text-muted-foreground">You don't have permission to access this section.</p>
           </div>
         )}
       </main>

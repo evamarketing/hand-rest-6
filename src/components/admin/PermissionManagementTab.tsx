@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
@@ -15,8 +16,18 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, ShieldCheck, Search, UserCog } from 'lucide-react';
+import { Shield, ShieldCheck, Search, UserCog, KeyRound } from 'lucide-react';
 import type { AppRole, Profile } from '@/types/database';
+import {
+  PERMISSION_TABS,
+  PERMISSION_ACTIONS,
+  TAB_LABELS,
+  buildPermissionKey,
+  getAllPermissionKeys,
+  useUserPermissions,
+  type PermissionTab,
+  type PermissionAction,
+} from '@/hooks/useAdminPermissions';
 
 interface UserWithRole {
   user_id: string;
@@ -37,7 +48,9 @@ export function PermissionManagementTab() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [changeDialog, setChangeDialog] = useState<{ open: boolean; user: UserWithRole | null }>({ open: false, user: null });
+  const [permDialog, setPermDialog] = useState<{ open: boolean; user: UserWithRole | null }>({ open: false, user: null });
   const [newRole, setNewRole] = useState<AppRole>('staff');
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
 
   const { data: usersWithRoles, isLoading } = useQuery({
     queryKey: ['all-user-roles'],
@@ -46,15 +59,12 @@ export function PermissionManagementTab() {
         .from('user_roles')
         .select('id, user_id, role')
         .order('created_at', { ascending: false });
-
       if (error) throw error;
-
       const userIds = roles.map(r => r.user_id);
       const { data: profiles } = await supabase
         .from('profiles')
         .select('*')
         .in('user_id', userIds);
-
       return roles.map(r => ({
         user_id: r.user_id,
         role: r.role as AppRole,
@@ -66,10 +76,7 @@ export function PermissionManagementTab() {
 
   const updateRoleMutation = useMutation({
     mutationFn: async ({ roleId, role }: { roleId: string; role: AppRole }) => {
-      const { error } = await supabase
-        .from('user_roles')
-        .update({ role })
-        .eq('id', roleId);
+      const { error } = await supabase.from('user_roles').update({ role }).eq('id', roleId);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -81,6 +88,9 @@ export function PermissionManagementTab() {
       toast({ title: 'Failed to update role', description: error.message, variant: 'destructive' });
     },
   });
+
+  // Permission management for a specific user
+  const { permissions: userPerms, isLoading: permsLoading, setPermissions: setPermsMutation } = useUserPermissions(permDialog.user?.user_id || null);
 
   const filtered = usersWithRoles?.filter(u => {
     const name = u.profile?.full_name?.toLowerCase() || '';
@@ -95,10 +105,111 @@ export function PermissionManagementTab() {
     setChangeDialog({ open: true, user });
   };
 
+  const openPermDialog = (user: UserWithRole) => {
+    setPermDialog({ open: true, user });
+    // Will load from useUserPermissions hook
+  };
+
+  // Sync selectedPermissions when userPerms loads
+  const currentPermDialogUserId = permDialog.user?.user_id;
+  const [lastSyncedUserId, setLastSyncedUserId] = useState<string | null>(null);
+  if (currentPermDialogUserId && currentPermDialogUserId !== lastSyncedUserId && !permsLoading) {
+    setSelectedPermissions(userPerms);
+    setLastSyncedUserId(currentPermDialogUserId);
+  }
+
+  const togglePermission = (key: string) => {
+    setSelectedPermissions(prev =>
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    );
+  };
+
+  const selectAllForTab = (tab: PermissionTab) => {
+    const tabKeys = PERMISSION_ACTIONS.map(a => buildPermissionKey(tab, a));
+    const allSelected = tabKeys.every(k => selectedPermissions.includes(k));
+    if (allSelected) {
+      setSelectedPermissions(prev => prev.filter(k => !tabKeys.includes(k)));
+    } else {
+      setSelectedPermissions(prev => [...new Set([...prev, ...tabKeys])]);
+    }
+  };
+
+  const selectAll = () => {
+    const all = getAllPermissionKeys();
+    if (selectedPermissions.length === all.length) {
+      setSelectedPermissions([]);
+    } else {
+      setSelectedPermissions(all);
+    }
+  };
+
+  const savePermissions = () => {
+    if (!permDialog.user) return;
+    setPermsMutation.mutate(
+      { userId: permDialog.user.user_id, keys: selectedPermissions },
+      {
+        onSuccess: () => {
+          toast({ title: 'Permissions updated successfully' });
+          setPermDialog({ open: false, user: null });
+          setLastSyncedUserId(null);
+        },
+        onError: (err: Error) => {
+          toast({ title: 'Failed to update permissions', description: err.message, variant: 'destructive' });
+        },
+      }
+    );
+  };
+
   const handleRoleChange = () => {
     if (!changeDialog.user) return;
     updateRoleMutation.mutate({ roleId: changeDialog.user.role_id, role: newRole });
   };
+
+  const renderUserRow = (u: UserWithRole) => (
+    <TableRow key={u.role_id}>
+      <TableCell className="font-medium">{u.profile?.full_name || 'Unknown'}</TableCell>
+      <TableCell>{u.profile?.phone || '—'}</TableCell>
+      <TableCell className="text-sm text-muted-foreground">{u.profile?.email || '—'}</TableCell>
+      <TableCell>
+        <Badge className={roleBadgeColors[u.role]}>{u.role.replace('_', ' ')}</Badge>
+      </TableCell>
+      <TableCell>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => openChangeDialog(u)}>
+            <UserCog className="w-4 h-4 mr-1" /> Role
+          </Button>
+          {u.role === 'admin' && (
+            <Button variant="outline" size="sm" onClick={() => openPermDialog(u)}>
+              <KeyRound className="w-4 h-4 mr-1" /> Permissions
+            </Button>
+          )}
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+
+  const renderUserCard = (u: UserWithRole) => (
+    <Card key={u.role_id}>
+      <CardContent className="p-4 space-y-2">
+        <div className="flex items-center justify-between">
+          <p className="font-medium">{u.profile?.full_name || 'Unknown'}</p>
+          <Badge className={roleBadgeColors[u.role]}>{u.role.replace('_', ' ')}</Badge>
+        </div>
+        {u.profile?.phone && <p className="text-sm text-muted-foreground">📞 {u.profile.phone}</p>}
+        {u.profile?.email && <p className="text-sm text-muted-foreground truncate">✉️ {u.profile.email}</p>}
+        <div className="flex gap-2 mt-2">
+          <Button variant="outline" size="sm" className="flex-1" onClick={() => openChangeDialog(u)}>
+            <UserCog className="w-4 h-4 mr-1" /> Role
+          </Button>
+          {u.role === 'admin' && (
+            <Button variant="outline" size="sm" className="flex-1" onClick={() => openPermDialog(u)}>
+              <KeyRound className="w-4 h-4 mr-1" /> Perms
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
 
   return (
     <div className="space-y-6">
@@ -111,19 +222,12 @@ export function PermissionManagementTab() {
 
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name, phone, or email..."
-          className="pl-10"
-        />
+        <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name, phone, or email..." className="pl-10" />
       </div>
 
       {/* Desktop Table */}
       <Card className="hidden md:block">
-        <CardHeader>
-          <CardTitle className="text-lg">All Users & Roles</CardTitle>
-        </CardHeader>
+        <CardHeader><CardTitle className="text-lg">All Users & Roles</CardTitle></CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
@@ -137,33 +241,10 @@ export function PermissionManagementTab() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">Loading...</TableCell>
-                </TableRow>
+                <TableRow><TableCell colSpan={5} className="text-center py-8">Loading...</TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No users found</TableCell>
-                </TableRow>
-              ) : (
-                filtered.map(u => (
-                  <TableRow key={u.role_id}>
-                    <TableCell className="font-medium">{u.profile?.full_name || 'Unknown'}</TableCell>
-                    <TableCell>{u.profile?.phone || '—'}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{u.profile?.email || '—'}</TableCell>
-                    <TableCell>
-                      <Badge className={roleBadgeColors[u.role]}>
-                        {u.role.replace('_', ' ')}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="outline" size="sm" onClick={() => openChangeDialog(u)}>
-                        <UserCog className="w-4 h-4 mr-1" />
-                        Change Role
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
+                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No users found</TableCell></TableRow>
+              ) : filtered.map(renderUserRow)}
             </TableBody>
           </Table>
         </CardContent>
@@ -176,58 +257,28 @@ export function PermissionManagementTab() {
           <p className="text-center py-8 text-muted-foreground">Loading...</p>
         ) : filtered.length === 0 ? (
           <p className="text-center py-8 text-muted-foreground">No users found</p>
-        ) : (
-          filtered.map(u => (
-            <Card key={u.role_id}>
-              <CardContent className="p-4 space-y-2">
-                <div className="flex items-center justify-between">
-                  <p className="font-medium">{u.profile?.full_name || 'Unknown'}</p>
-                  <Badge className={roleBadgeColors[u.role]}>
-                    {u.role.replace('_', ' ')}
-                  </Badge>
-                </div>
-                {u.profile?.phone && (
-                  <p className="text-sm text-muted-foreground">📞 {u.profile.phone}</p>
-                )}
-                {u.profile?.email && (
-                  <p className="text-sm text-muted-foreground truncate">✉️ {u.profile.email}</p>
-                )}
-                <Button variant="outline" size="sm" className="w-full mt-2" onClick={() => openChangeDialog(u)}>
-                  <UserCog className="w-4 h-4 mr-1" />
-                  Change Role
-                </Button>
-              </CardContent>
-            </Card>
-          ))
-        )}
+        ) : filtered.map(renderUserCard)}
       </div>
 
+      {/* Change Role Dialog */}
       <Dialog open={changeDialog.open} onOpenChange={(open) => setChangeDialog({ open, user: open ? changeDialog.user : null })}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5" />
-              Change Role
-            </DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><ShieldCheck className="w-5 h-5" /> Change Role</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
               <p className="text-sm text-muted-foreground">User</p>
               <p className="font-medium">{changeDialog.user?.profile?.full_name || 'Unknown'}</p>
-              <p className="text-sm text-muted-foreground">{changeDialog.user?.profile?.phone}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground mb-1">Current Role</p>
-              <Badge className={roleBadgeColors[changeDialog.user?.role || 'customer']}>
-                {changeDialog.user?.role?.replace('_', ' ')}
-              </Badge>
+              <Badge className={roleBadgeColors[changeDialog.user?.role || 'customer']}>{changeDialog.user?.role?.replace('_', ' ')}</Badge>
             </div>
             <div>
               <label className="text-sm font-medium">New Role</label>
               <Select value={newRole} onValueChange={(v) => setNewRole(v as AppRole)}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="staff">Staff</SelectItem>
@@ -240,6 +291,69 @@ export function PermissionManagementTab() {
             <Button variant="outline" onClick={() => setChangeDialog({ open: false, user: null })}>Cancel</Button>
             <Button onClick={handleRoleChange} disabled={updateRoleMutation.isPending}>
               {updateRoleMutation.isPending ? 'Updating...' : 'Update Role'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Permissions Dialog */}
+      <Dialog open={permDialog.open} onOpenChange={(open) => { setPermDialog({ open, user: open ? permDialog.user : null }); if (!open) setLastSyncedUserId(null); }}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><KeyRound className="w-5 h-5" /> Manage Permissions</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-1 pb-2">
+            <p className="font-medium">{permDialog.user?.profile?.full_name || 'Unknown'}</p>
+            <p className="text-sm text-muted-foreground">{permDialog.user?.profile?.email}</p>
+          </div>
+
+          {permsLoading ? (
+            <p className="text-center py-4 text-muted-foreground">Loading permissions...</p>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={selectedPermissions.length === getAllPermissionKeys().length}
+                  onCheckedChange={selectAll}
+                />
+                <span className="text-sm font-medium">Select All</span>
+              </div>
+
+              {PERMISSION_TABS.map(tab => {
+                const tabKeys = PERMISSION_ACTIONS.map(a => buildPermissionKey(tab, a));
+                const allTabSelected = tabKeys.every(k => selectedPermissions.includes(k));
+                return (
+                  <Card key={tab}>
+                    <CardContent className="p-3 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Checkbox checked={allTabSelected} onCheckedChange={() => selectAllForTab(tab)} />
+                        <span className="font-medium text-sm">{TAB_LABELS[tab]}</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 pl-6">
+                        {PERMISSION_ACTIONS.map(action => {
+                          const key = buildPermissionKey(tab, action);
+                          return (
+                            <div key={key} className="flex items-center gap-2">
+                              <Checkbox
+                                checked={selectedPermissions.includes(key)}
+                                onCheckedChange={() => togglePermission(key)}
+                              />
+                              <span className="text-sm capitalize">{action}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => { setPermDialog({ open: false, user: null }); setLastSyncedUserId(null); }}>Cancel</Button>
+            <Button onClick={savePermissions} disabled={setPermsMutation.isPending}>
+              {setPermsMutation.isPending ? 'Saving...' : 'Save Permissions'}
             </Button>
           </DialogFooter>
         </DialogContent>
