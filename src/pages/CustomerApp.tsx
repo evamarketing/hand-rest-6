@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Sparkles, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,87 +6,52 @@ import { Input } from '@/components/ui/input';
 import { SplashScreen } from '@/components/customer/SplashScreen';
 import { ServiceCard } from '@/components/customer/ServiceCard';
 import { QuickCleanBanner } from '@/components/customer/QuickCleanBanner';
-import { PackageCard } from '@/components/customer/PackageCard';
-import { PropertyDetailsForm, PropertyDetails } from '@/components/customer/PropertyDetailsForm';
-import { AddOnServicesForm } from '@/components/customer/AddOnServicesForm';
+import { BuildServiceForm } from '@/components/customer/BuildServiceForm';
 import { BookingForm, BookingFormData } from '@/components/customer/BookingForm';
-import { useServiceCategories, usePackages } from '@/hooks/useServices';
+import { useServiceCategories } from '@/hooks/useServices';
 import { useCreateBooking } from '@/hooks/useBookings';
 import { useToast } from '@/hooks/use-toast';
 import logo from '@/assets/handrest-logo.jpeg';
-import type { ServiceCategory, Package } from '@/types/database';
+import type { ServiceCategory } from '@/types/database';
 
-type Screen = 'splash' | 'home' | 'packages' | 'property_details' | 'addons' | 'booking' | 'confirmation';
+type Screen = 'splash' | 'home' | 'build_service' | 'booking' | 'confirmation';
 
 export default function CustomerApp() {
   const [screen, setScreen] = useState<Screen>('splash');
   const [selectedCategory, setSelectedCategory] = useState<ServiceCategory | null>(null);
-  const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
   const [bookingNumber, setBookingNumber] = useState<string>('');
   const [trackingNumber, setTrackingNumber] = useState('');
-  const [propertyDetails, setPropertyDetails] = useState<PropertyDetails | null>(null);
-  const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
-  const [addonPrice, setAddonPrice] = useState(0);
-  
+  const [totalPrice, setTotalPrice] = useState(0);
+  const [selectedFeatureIds, setSelectedFeatureIds] = useState<string[]>([]);
+  const [selectedAddonIds, setSelectedAddonIds] = useState<string[]>([]);
+
   const { data: categories, isLoading: categoriesLoading } = useServiceCategories();
-  const { data: packages, isLoading: packagesLoading } = usePackages(selectedCategory?.id);
   const createBooking = useCreateBooking();
   const { toast } = useToast();
 
-  const handleSplashComplete = () => {
-    setScreen('home');
-  };
+  const handleSplashComplete = () => setScreen('home');
 
   const handleCategorySelect = (category: ServiceCategory) => {
     setSelectedCategory(category);
-    setScreen('packages');
+    setScreen('build_service');
   };
 
-  const handlePackageSelect = (pkg: Package) => {
-    setSelectedPackage(pkg);
-    setScreen('property_details');
-  };
-
-  const handlePropertySubmit = (details: PropertyDetails) => {
-    setPropertyDetails(details);
-    setScreen('addons');
-  };
-
-  const handleUpgradeRequest = () => {
-    // Go back to packages screen to pick a higher tier
-    setSelectedPackage(null);
-    setPropertyDetails(null);
-    setScreen('packages');
-  };
-
-  const handleAddOnsSubmit = (addOns: string[], totalAddonPrice: number) => {
-    setSelectedAddOns(addOns);
-    setAddonPrice(totalAddonPrice);
+  const handleBuildServiceSubmit = (featureIds: string[], addonIds: string[], total: number) => {
+    setSelectedFeatureIds(featureIds);
+    setSelectedAddonIds(addonIds);
+    setTotalPrice(total);
     setScreen('booking');
   };
 
   const handleQuickClean = () => {
-    // Find the basic package from home cleaning
-    const homeCategory = categories?.find(c => c.name === 'Home Cleaning');
-    if (homeCategory) {
-      const basicPkg = packages?.find(p => p.name === 'BASIC PACKAGE' && p.category_id === homeCategory.id);
-      if (basicPkg) {
-        setSelectedPackage(basicPkg);
-        setScreen('booking');
-        return;
-      }
-    }
-    // If not found, go to home cleaning
-    setSelectedCategory(categories?.find(c => c.name === 'Home Cleaning') || null);
-    setScreen('packages');
+    // Go directly to build service without a category filter
+    setSelectedCategory(null);
+    setScreen('build_service');
   };
 
   const handleBookingSubmit = async (data: BookingFormData) => {
-    if (!selectedPackage) return;
-
     try {
       const booking = await createBooking.mutateAsync({
-        package_id: selectedPackage.id,
         customer_name: data.customer_name,
         customer_email: data.customer_email,
         customer_phone: data.customer_phone,
@@ -99,14 +64,14 @@ export default function CustomerApp() {
         scheduled_date: data.scheduled_date,
         scheduled_time: data.scheduled_time,
         special_instructions: data.special_instructions,
-        base_price: selectedPackage.price,
-        addon_price: addonPrice,
-        total_price: selectedPackage.price + addonPrice,
+        base_price: totalPrice,
+        addon_price: 0,
+        total_price: totalPrice,
       });
 
       setBookingNumber(booking.booking_number);
       setScreen('confirmation');
-      
+
       toast({
         title: 'Booking Confirmed!',
         description: `Your booking number is ${booking.booking_number}`,
@@ -121,23 +86,16 @@ export default function CustomerApp() {
   };
 
   const handleBack = () => {
-    if (screen === 'packages') {
+    if (screen === 'build_service') {
       setSelectedCategory(null);
       setScreen('home');
-    } else if (screen === 'property_details') {
-      setSelectedPackage(null);
-      setPropertyDetails(null);
-      setScreen('packages');
-    } else if (screen === 'addons') {
-      setScreen('property_details');
     } else if (screen === 'booking') {
-      setScreen('addons');
+      setScreen('build_service');
     } else if (screen === 'confirmation') {
       setSelectedCategory(null);
-      setSelectedPackage(null);
-      setPropertyDetails(null);
-      setSelectedAddOns([]);
-      setAddonPrice(0);
+      setTotalPrice(0);
+      setSelectedFeatureIds([]);
+      setSelectedAddonIds([]);
       setBookingNumber('');
       setScreen('home');
     }
@@ -163,17 +121,15 @@ export default function CustomerApp() {
               ) : (
                 <img src={logo} alt="HandRest" className="h-10 object-contain" />
               )}
-              
+
               <h1 className="text-lg font-semibold text-brand-navy">
                 {screen === 'home' && 'HandRest'}
-                {screen === 'packages' && selectedCategory?.name}
-                {screen === 'property_details' && 'Property Details'}
-                {screen === 'addons' && 'Add-on Services'}
+                {screen === 'build_service' && (selectedCategory?.name || 'Build Your Service')}
                 {screen === 'booking' && 'Book Service'}
                 {screen === 'confirmation' && 'Booking Confirmed'}
               </h1>
-              
-              <div className="w-10" /> {/* Spacer for centering */}
+
+              <div className="w-10" />
             </div>
           </header>
 
@@ -186,17 +142,14 @@ export default function CustomerApp() {
                 animate={{ opacity: 1 }}
                 className="space-y-6"
               >
-                {/* Tagline */}
                 <div className="text-center py-4">
                   <p className="text-brand-teal font-medium italic">
                     "You Relax. We Restore."
                   </p>
                 </div>
 
-                {/* Quick Clean Banner */}
                 <QuickCleanBanner onTryNow={handleQuickClean} />
 
-                {/* Track Booking */}
                 <div className="bg-card rounded-xl p-4 shadow-soft">
                   <h3 className="font-semibold text-foreground mb-3">Track Your Booking</h3>
                   <div className="flex gap-2">
@@ -212,7 +165,6 @@ export default function CustomerApp() {
                   </div>
                 </div>
 
-                {/* Services */}
                 <div>
                   <h2 className="text-xl font-bold text-foreground mb-4">Our Services</h2>
                   {categoriesLoading ? (
@@ -237,57 +189,20 @@ export default function CustomerApp() {
               </motion.div>
             )}
 
-            {/* Packages Screen */}
-            {screen === 'packages' && (
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="space-y-4"
-              >
-                {packagesLoading ? (
-                  <div className="space-y-4">
-                    {[1, 2, 3].map(i => (
-                      <div key={i} className="h-64 bg-muted rounded-2xl animate-pulse" />
-                    ))}
-                  </div>
-                ) : (
-                  packages?.map((pkg, index) => (
-                    <PackageCard
-                      key={pkg.id}
-                      pkg={pkg}
-                      onSelect={() => handlePackageSelect(pkg)}
-                      index={index}
-                      isPopular={index === 1}
-                    />
-                  ))
-                )}
-              </motion.div>
-            )}
-
-            {/* Property Details Screen */}
-            {screen === 'property_details' && selectedPackage && (
-              <PropertyDetailsForm
-                pkg={selectedPackage}
-                onSubmit={handlePropertySubmit}
-                onUpgrade={handleUpgradeRequest}
-              />
-            )}
-
-            {/* Add-on Services Screen */}
-            {screen === 'addons' && selectedPackage && (
-              <AddOnServicesForm
-                pkg={selectedPackage}
-                onSubmit={handleAddOnsSubmit}
+            {/* Build Service Screen */}
+            {screen === 'build_service' && (
+              <BuildServiceForm
+                categoryName={selectedCategory?.name}
+                onSubmit={handleBuildServiceSubmit}
               />
             )}
 
             {/* Booking Form Screen */}
-            {screen === 'booking' && selectedPackage && (
+            {screen === 'booking' && (
               <BookingForm
-                pkg={selectedPackage}
+                totalPrice={totalPrice}
                 onSubmit={handleBookingSubmit}
                 isLoading={createBooking.isPending}
-                addonPrice={addonPrice}
               />
             )}
 
@@ -301,25 +216,25 @@ export default function CustomerApp() {
                 <div className="w-24 h-24 gradient-brand rounded-full flex items-center justify-center mx-auto mb-6">
                   <Sparkles className="w-12 h-12 text-white" />
                 </div>
-                
+
                 <h2 className="text-2xl font-bold text-brand-navy mb-2">
                   Booking Confirmed!
                 </h2>
-                
+
                 <p className="text-muted-foreground mb-6">
                   Thank you for choosing HandRest Cleaning Solutions
                 </p>
-                
+
                 <div className="bg-brand-light-blue rounded-xl p-6 mb-8">
                   <p className="text-sm text-muted-foreground mb-2">Booking Number</p>
                   <p className="text-3xl font-bold text-brand-navy">{bookingNumber}</p>
                 </div>
-                
+
                 <p className="text-sm text-muted-foreground mb-8">
                   We'll send a confirmation to your email with all the details.
                   Our team will contact you before the scheduled time.
                 </p>
-                
+
                 <Button variant="hero" size="xl" onClick={handleBack}>
                   Book Another Service
                 </Button>
@@ -327,7 +242,6 @@ export default function CustomerApp() {
             )}
           </main>
 
-          {/* Bottom Navigation */}
           {screen === 'home' && (
             <nav className="fixed bottom-0 left-0 right-0 bg-card border-t shadow-elevated">
               <div className="container mx-auto px-4 h-20 flex items-center justify-center">

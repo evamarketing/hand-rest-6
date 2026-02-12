@@ -5,13 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import type { Package } from '@/types/database';
 
 interface BookingFormProps {
-  pkg: Package;
+  totalPrice: number;
   onSubmit: (data: BookingFormData) => void;
   isLoading?: boolean;
-  addonPrice?: number;
 }
 
 export interface BookingFormData {
@@ -29,7 +27,7 @@ export interface BookingFormData {
   special_instructions: string;
 }
 
-export function BookingForm({ pkg, onSubmit, isLoading, addonPrice = 0 }: BookingFormProps) {
+export function BookingForm({ totalPrice, onSubmit, isLoading }: BookingFormProps) {
   const [formData, setFormData] = useState<BookingFormData>({
     customer_name: '',
     customer_email: '',
@@ -58,7 +56,6 @@ export function BookingForm({ pkg, onSubmit, isLoading, addonPrice = 0 }: Bookin
     onSubmit(formData);
   };
 
-  // Get tomorrow's date as minimum
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   const minDate = tomorrow.toISOString().split('T')[0];
@@ -70,15 +67,6 @@ export function BookingForm({ pkg, onSubmit, isLoading, addonPrice = 0 }: Bookin
       onSubmit={handleSubmit}
       className="space-y-6"
     >
-      {/* Package Summary */}
-      <div className="bg-brand-light-blue rounded-xl p-4 mb-6">
-        <h3 className="font-semibold text-brand-navy">{pkg.name}</h3>
-        <p className="text-sm text-muted-foreground">{pkg.category?.name}</p>
-        <p className="text-2xl font-bold text-brand-teal mt-2">
-          ₹{pkg.price.toLocaleString()}
-        </p>
-      </div>
-
       {/* Customer Details */}
       <div className="space-y-4">
         <h4 className="font-semibold text-foreground flex items-center gap-2">
@@ -281,20 +269,10 @@ export function BookingForm({ pkg, onSubmit, isLoading, addonPrice = 0 }: Bookin
 
       {/* Total */}
       <div className="border-t pt-4">
-        <div className="flex justify-between items-center text-sm text-muted-foreground mb-1">
-          <span>Base Package</span>
-          <span>₹{pkg.price.toLocaleString()}</span>
-        </div>
-        {addonPrice > 0 && (
-          <div className="flex justify-between items-center text-sm text-muted-foreground mb-1">
-            <span>Add-ons</span>
-            <span>₹{addonPrice.toLocaleString()}</span>
-          </div>
-        )}
-        <div className="flex justify-between items-center mb-4 pt-2 border-t">
+        <div className="flex justify-between items-center mb-4">
           <span className="text-lg font-semibold">Total Amount</span>
           <span className="text-2xl font-bold text-brand-teal">
-            ₹{(pkg.price + addonPrice).toLocaleString()}
+            ₹{totalPrice.toLocaleString()}
           </span>
         </div>
         

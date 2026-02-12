@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Booking, BookingStatus } from '@/types/database';
 
 interface CreateBookingData {
-  package_id: string;
+  package_id?: string;
   customer_name: string;
   customer_email: string;
   customer_phone: string;
