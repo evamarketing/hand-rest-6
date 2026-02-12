@@ -317,66 +317,100 @@ function BookingsTab() {
       
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Booking #</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Contact</TableHead>
-                <TableHead>Service</TableHead>
-                <TableHead>Schedule</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
+          {/* Desktop Table View */}
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8">
-                    Loading...
-                  </TableCell>
+                  <TableHead>Booking #</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>Service</TableHead>
+                  <TableHead>Schedule</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ) : filteredBookings.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                    No bookings found
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredBookings.map(booking => (
-                  <TableRow key={booking.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openBookingDetail(booking)}>
-                    <TableCell className="font-medium">{booking.booking_number}</TableCell>
-                    <TableCell>{booking.customer_name}</TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        <p>{booking.customer_phone}</p>
-                        <p className="text-muted-foreground">{booking.customer_email}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>{booking.package?.name}</TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        <p>{new Date(booking.scheduled_date).toLocaleDateString()}</p>
-                        <p className="text-muted-foreground">{booking.scheduled_time}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={statusColors[booking.status]}>
-                        {booking.status.replace('_', ' ')}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>₹{booking.total_price.toLocaleString()}</TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="icon">
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                    </TableCell>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-8">Loading...</TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : filteredBookings.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No bookings found</TableCell>
+                  </TableRow>
+                ) : (
+                  filteredBookings.map(booking => (
+                    <TableRow key={booking.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openBookingDetail(booking)}>
+                      <TableCell className="font-medium">{booking.booking_number}</TableCell>
+                      <TableCell>{booking.customer_name}</TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          <p>{booking.customer_phone}</p>
+                          <p className="text-muted-foreground">{booking.customer_email}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell>{booking.package?.name}</TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          <p>{new Date(booking.scheduled_date).toLocaleDateString()}</p>
+                          <p className="text-muted-foreground">{booking.scheduled_time}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={statusColors[booking.status]}>
+                          {booking.status.replace('_', ' ')}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>₹{booking.total_price.toLocaleString()}</TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="icon">
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden divide-y">
+            {isLoading ? (
+              <p className="text-center py-8">Loading...</p>
+            ) : filteredBookings.length === 0 ? (
+              <p className="text-center py-8 text-muted-foreground">No bookings found</p>
+            ) : (
+              filteredBookings.map(booking => (
+                <div
+                  key={booking.id}
+                  className="p-4 cursor-pointer active:bg-muted/50"
+                  onClick={() => openBookingDetail(booking)}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-sm">{booking.booking_number}</span>
+                    <Badge className={statusColors[booking.status] + ' text-xs'}>
+                      {booking.status.replace('_', ' ')}
+                    </Badge>
+                  </div>
+                  <p className="font-medium">{booking.customer_name}</p>
+                  <p className="text-sm text-muted-foreground">{booking.customer_phone}</p>
+                  <div className="flex items-center justify-between mt-2 text-sm">
+                    <span className="text-muted-foreground">
+                      {new Date(booking.scheduled_date).toLocaleDateString()} • {booking.scheduled_time}
+                    </span>
+                    <span className="font-bold text-brand-teal">₹{booking.total_price.toLocaleString()}</span>
+                  </div>
+                  {booking.package?.name && (
+                    <p className="text-xs text-muted-foreground mt-1">{booking.package.name}</p>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -465,9 +499,40 @@ export default function AdminDashboard() {
   });
 
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-brand-navy text-white flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col md:flex-row">
+      {/* Mobile Top Bar */}
+      <div className="md:hidden flex items-center justify-between p-3 bg-brand-navy text-white">
+        <div className="flex items-center gap-3">
+          <img src={logo} alt="HandRest" className="h-8 rounded-lg" />
+          <span className="font-medium text-sm">Admin</span>
+        </div>
+        <Button variant="ghost" size="sm" className="text-white/70 hover:text-white" onClick={signOut}>
+          <LogOut className="w-4 h-4" />
+        </Button>
+      </div>
+
+      {/* Mobile Tab Bar */}
+      <div className="md:hidden overflow-x-auto bg-brand-navy px-2 pb-2">
+        <div className="flex gap-1">
+          {navItems.map(item => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs whitespace-nowrap transition-colors ${
+                activeTab === item.id
+                  ? 'bg-white/10 text-white'
+                  : 'text-white/60 hover:bg-white/5'
+              }`}
+            >
+              <item.icon className="w-4 h-4" />
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:flex w-64 bg-brand-navy text-white flex-col">
         <div className="p-6">
           <img src={logo} alt="HandRest" className="h-12 rounded-lg mb-2" />
           <p className="text-sm text-white/70">Admin Dashboard</p>

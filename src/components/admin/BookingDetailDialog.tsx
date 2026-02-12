@@ -44,7 +44,17 @@ export function BookingDetailDialog({ booking, open, onOpenChange }: BookingDeta
   const [reportBefore, setReportBefore] = useState('');
   const [requiredStaffCount, setRequiredStaffCount] = useState(2);
   const [selectedStaff, setSelectedStaff] = useState<string[]>([]);
-  
+  const [lastBookingId, setLastBookingId] = useState<string | null>(null);
+
+  // Reset and pre-fill when booking changes
+  if (booking && booking.id !== lastBookingId) {
+    setLastBookingId(booking.id);
+    setSelectedPanchayath(booking.panchayath_id || '');
+    setSelectedStaff([]);
+    setReportBefore('');
+    setRequiredStaffCount(booking.required_staff_count || 2);
+  }
+
   const { data: availableStaff } = useStaffByPanchayath(selectedPanchayath || null);
 
   if (!booking) return null;
@@ -115,23 +125,30 @@ export function BookingDetailDialog({ booking, open, onOpenChange }: BookingDeta
 
         <div className="space-y-6">
           {/* Customer Info */}
-          <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
             <div className="flex items-center gap-2">
-              <User className="w-4 h-4 text-muted-foreground" />
-              <span>{booking.customer_name}</span>
+              <User className="w-4 h-4 shrink-0 text-muted-foreground" />
+              <span className="truncate">{booking.customer_name}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Phone className="w-4 h-4 text-muted-foreground" />
-              <span>{booking.customer_phone}</span>
+              <Phone className="w-4 h-4 shrink-0 text-muted-foreground" />
+              <span className="truncate">{booking.customer_phone}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Mail className="w-4 h-4 text-muted-foreground" />
-              <span>{booking.customer_email}</span>
+              <Mail className="w-4 h-4 shrink-0 text-muted-foreground" />
+              <span className="truncate">{booking.customer_email}</span>
             </div>
             <div className="flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-muted-foreground" />
-              <span>{booking.address_line1}, {booking.city}</span>
+              <MapPin className="w-4 h-4 shrink-0 text-muted-foreground" />
+              <span className="truncate">{booking.address_line1}, {booking.city}</span>
             </div>
+            {booking.panchayath_id && panchayaths && (
+              <div className="flex items-center gap-2 sm:col-span-2">
+                <MapPin className="w-4 h-4 shrink-0 text-muted-foreground" />
+                <span className="text-muted-foreground">Panchayath:</span>
+                <span className="font-medium">{panchayaths.find(p => p.id === booking.panchayath_id)?.name || 'Unknown'}</span>
+              </div>
+            )}
           </div>
 
           {/* Schedule & Package */}

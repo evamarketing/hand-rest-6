@@ -568,6 +568,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      booking_in_staff_panchayath: {
+        Args: { p_booking_id: string; p_staff_user_id: string }
+        Returns: boolean
+      }
       create_booking: {
         Args: {
           p_addon_price?: number
@@ -595,6 +599,10 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       is_staff: { Args: never; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
+      staff_assigned_to_booking: {
+        Args: { p_booking_id: string; p_staff_user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "staff" | "customer" | "super_admin"
