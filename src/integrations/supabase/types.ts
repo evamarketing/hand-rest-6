@@ -568,6 +568,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_booking: {
+        Args: {
+          p_addon_price?: number
+          p_base_price?: number
+          p_customer_name: string
+          p_customer_phone: string
+          p_landmark?: string
+          p_package_id?: string
+          p_panchayath_id?: string
+          p_property_sqft?: number
+          p_scheduled_date?: string
+          p_scheduled_time?: string
+          p_special_instructions?: string
+          p_total_price?: number
+        }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
