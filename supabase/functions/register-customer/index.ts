@@ -73,6 +73,8 @@ Deno.serve(async (req) => {
       full_name: name,
       email: fakeEmail,
       phone: cleanMobile,
+      panchayath_id,
+      ward_number,
     });
 
     // Assign customer role
