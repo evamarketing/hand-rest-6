@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   LayoutDashboard, 
@@ -19,7 +20,8 @@ import {
   Sparkles,
   MapPin,
   Shield,
-  Lock
+  Lock,
+  Home
 } from 'lucide-react';
 import { useMyPermissions, type PermissionTab } from '@/hooks/useAdminPermissions';
 import { Button } from '@/components/ui/button';
@@ -54,6 +56,7 @@ import { PanchayathsTab } from '@/components/admin/PanchayathsTab';
 import { StaffManagementTab } from '@/components/admin/StaffManagementTab';
 import { BookingDetailDialog } from '@/components/admin/BookingDetailDialog';
 import { PermissionManagementTab } from '@/components/admin/PermissionManagementTab';
+import { CustomersTab } from '@/components/admin/CustomersTab';
 import type { Booking, BookingStatus } from '@/types/database';
 
 const statusColors: Record<BookingStatus, string> = {
@@ -65,7 +68,7 @@ const statusColors: Record<BookingStatus, string> = {
   cancelled: 'bg-red-100 text-red-800',
 };
 
-type Tab = 'dashboard' | 'bookings' | 'staff' | 'packages' | 'addons' | 'custom_features' | 'panchayaths' | 'permissions' | 'settings';
+type Tab = 'dashboard' | 'bookings' | 'customers' | 'staff' | 'packages' | 'addons' | 'custom_features' | 'panchayaths' | 'permissions' | 'settings';
 
 function LoginForm({ onLogin }: { onLogin: (email: string, password: string, loginType: 'email' | 'mobile') => Promise<void> }) {
   const [loginType, setLoginType] = useState<'email' | 'mobile'>('email');
@@ -428,6 +431,7 @@ function BookingsTab() {
 // PackagesTab and AddonsTab are now imported from components/admin
 
 export default function AdminDashboard() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const { user, profile, signIn, signOut, loading: authLoading, role } = useAuth();
   const { toast } = useToast();
@@ -482,6 +486,7 @@ export default function AdminDashboard() {
   const allNavItems = [
     { id: 'dashboard' as const, icon: LayoutDashboard, label: 'Dashboard', permTab: 'dashboard' as PermissionTab },
     { id: 'bookings' as const, icon: Calendar, label: 'Bookings', permTab: 'bookings' as PermissionTab },
+    { id: 'customers' as const, icon: UserPlus, label: 'Customers', permTab: 'bookings' as PermissionTab },
     { id: 'staff' as const, icon: Users, label: 'Staff', permTab: 'staff' as PermissionTab },
     { id: 'packages' as const, icon: Package, label: 'Packages', permTab: 'packages' as PermissionTab },
     { id: 'addons' as const, icon: Puzzle, label: 'Add-ons', permTab: 'addons' as PermissionTab },
@@ -580,6 +585,7 @@ export default function AdminDashboard() {
       <main className="flex-1 p-4 md:p-8 overflow-auto">
         {activeTab === 'dashboard' && canViewTab('dashboard') && <DashboardTab />}
         {activeTab === 'bookings' && canViewTab('bookings') && <BookingsTab />}
+        {activeTab === 'customers' && canViewTab('bookings') && <CustomersTab />}
         {activeTab === 'staff' && canViewTab('staff') && <StaffManagementTab />}
         {activeTab === 'packages' && canViewTab('packages') && <PackagesTab />}
         {activeTab === 'addons' && canViewTab('addons') && <AddonsTab />}
@@ -600,6 +606,16 @@ export default function AdminDashboard() {
           </div>
         )}
       </main>
+
+      {/* Floating Home Button */}
+      <Button
+        variant="hero"
+        size="icon"
+        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-elevated"
+        onClick={() => navigate('/')}
+      >
+        <Home className="w-6 h-6" />
+      </Button>
     </div>
   );
 }
