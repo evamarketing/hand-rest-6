@@ -9,6 +9,7 @@ export interface CustomFeature {
   icon: string;
   is_active: boolean;
   display_order: number;
+  staff_earning_per_person: number;
   created_at: string;
   updated_at: string;
 }

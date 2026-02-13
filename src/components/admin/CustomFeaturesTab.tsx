@@ -76,6 +76,7 @@ export function CustomFeaturesTab() {
                 <TableHead>Name</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead>Price</TableHead>
+                <TableHead>Staff Earning/Person</TableHead>
                 <TableHead>Icon</TableHead>
                 <TableHead>Order</TableHead>
                 <TableHead>Status</TableHead>
@@ -85,11 +86,11 @@ export function CustomFeaturesTab() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">Loading...</TableCell>
+                  <TableCell colSpan={8} className="text-center py-8">Loading...</TableCell>
                 </TableRow>
               ) : !features?.length ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     No custom features yet
                   </TableCell>
                 </TableRow>
@@ -99,6 +100,7 @@ export function CustomFeaturesTab() {
                     <TableCell className="font-medium">{f.name}</TableCell>
                     <TableCell className="max-w-xs truncate">{f.description}</TableCell>
                     <TableCell className="font-semibold">₹{f.price.toLocaleString()}</TableCell>
+                    <TableCell className="text-muted-foreground">₹{f.staff_earning_per_person.toLocaleString()}</TableCell>
                     <TableCell>{f.icon}</TableCell>
                     <TableCell>{f.display_order}</TableCell>
                     <TableCell>

@@ -21,7 +21,7 @@ interface Props {
 
 export function CustomFeatureFormDialog({ open, onOpenChange, editing, onSubmit, isLoading }: Props) {
   const [form, setForm] = useState<FormData>({
-    name: '', description: '', price: 0, icon: 'sparkles', is_active: true, display_order: 0,
+    name: '', description: '', price: 0, icon: 'sparkles', is_active: true, display_order: 0, staff_earning_per_person: 0,
   });
 
   useEffect(() => {
@@ -29,9 +29,10 @@ export function CustomFeatureFormDialog({ open, onOpenChange, editing, onSubmit,
       setForm({
         name: editing.name, description: editing.description, price: editing.price,
         icon: editing.icon, is_active: editing.is_active, display_order: editing.display_order,
+        staff_earning_per_person: editing.staff_earning_per_person,
       });
     } else {
-      setForm({ name: '', description: '', price: 0, icon: 'sparkles', is_active: true, display_order: 0 });
+      setForm({ name: '', description: '', price: 0, icon: 'sparkles', is_active: true, display_order: 0, staff_earning_per_person: 0 });
     }
   }, [editing, open]);
 
@@ -64,6 +65,11 @@ export function CustomFeatureFormDialog({ open, onOpenChange, editing, onSubmit,
               <Label>Icon name</Label>
               <Input value={form.icon} onChange={e => setForm(f => ({ ...f, icon: e.target.value }))} placeholder="e.g. sparkles, wind" />
             </div>
+          </div>
+          <div>
+            <Label>Staff Earning Per Person (₹)</Label>
+            <Input type="number" value={form.staff_earning_per_person} onChange={e => setForm(f => ({ ...f, staff_earning_per_person: Number(e.target.value) }))} min={0} />
+            <p className="text-xs text-muted-foreground mt-1">Internal: amount each staff earns when this feature is part of a completed job</p>
           </div>
           <div>
             <Label>Display Order</Label>

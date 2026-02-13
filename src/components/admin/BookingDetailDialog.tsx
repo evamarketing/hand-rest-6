@@ -48,6 +48,7 @@ export function BookingDetailDialog({ booking, open, onOpenChange }: BookingDeta
   const [selectedStaff, setSelectedStaff] = useState<string[]>([]);
   const [lastBookingId, setLastBookingId] = useState<string | null>(null);
   const [earningPerStaff, setEarningPerStaff] = useState(0);
+  const [bonusPerStaff, setBonusPerStaff] = useState(0);
   const [finishing, setFinishing] = useState(false);
 
   // Reset and pre-fill when booking changes
@@ -58,6 +59,7 @@ export function BookingDetailDialog({ booking, open, onOpenChange }: BookingDeta
     setReportBefore('');
     setRequiredStaffCount(booking.required_staff_count || 2);
     setEarningPerStaff(0);
+    setBonusPerStaff(0);
     setFinishing(false);
   }
 
@@ -126,11 +128,12 @@ export function BookingDetailDialog({ booking, open, onOpenChange }: BookingDeta
       if (aErr) throw aErr;
 
       if (assignments && assignments.length > 0) {
+        const totalPerStaff = earningPerStaff + bonusPerStaff;
         // Insert earnings for each staff
         const earningInserts = assignments.map(a => ({
           booking_id: booking.id,
           staff_user_id: a.staff_user_id,
-          amount: earningPerStaff,
+          amount: totalPerStaff,
           status: 'pending',
         }));
 
@@ -335,7 +338,27 @@ export function BookingDetailDialog({ booking, open, onOpenChange }: BookingDeta
                   onChange={e => setEarningPerStaff(Number(e.target.value))}
                   placeholder="Enter amount per staff member"
                 />
+                <p className="text-xs text-muted-foreground mt-1">Base earning from custom features staff contribution</p>
               </div>
+
+              <div>
+                <Label>Bonus Per Staff (₹)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={bonusPerStaff}
+                  onChange={e => setBonusPerStaff(Number(e.target.value))}
+                  placeholder="Optional bonus amount"
+                />
+              </div>
+
+              {(earningPerStaff > 0 || bonusPerStaff > 0) && (
+                <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-1">
+                  <div className="flex justify-between"><span>Base Earning:</span><span>₹{earningPerStaff.toLocaleString()}</span></div>
+                  {bonusPerStaff > 0 && <div className="flex justify-between"><span>Bonus:</span><span>₹{bonusPerStaff.toLocaleString()}</span></div>}
+                  <div className="flex justify-between font-semibold border-t pt-1"><span>Total Per Staff:</span><span>₹{(earningPerStaff + bonusPerStaff).toLocaleString()}</span></div>
+                </div>
+              )}
 
               <Button 
                 variant="hero" 
