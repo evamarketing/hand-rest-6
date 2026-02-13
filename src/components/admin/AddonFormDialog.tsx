@@ -57,6 +57,7 @@ export function AddonFormDialog({ open, onOpenChange, editing, onSubmit, isLoadi
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{editing ? 'Edit Add-on' : 'Create Add-on'}</DialogTitle>
+          <p className="text-sm text-muted-foreground">External service — job allocated to third-party provider</p>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -69,7 +70,7 @@ export function AddonFormDialog({ open, onOpenChange, editing, onSubmit, isLoadi
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Price (₹)</Label>
+              <Label>Service Charge (₹)</Label>
               <Input type="number" value={form.price} onChange={e => setForm(f => ({ ...f, price: Number(e.target.value) }))} required min={0} />
             </div>
             <div>

@@ -92,7 +92,7 @@ export function AddOnServicesForm({ pkg, onSubmit }: AddOnServicesFormProps) {
       <div>
         <h4 className="font-semibold text-foreground mb-1">⚡ Add-on Services</h4>
         <p className="text-xs text-muted-foreground mb-4">
-          Add extra services to your package. Price updates instantly.
+          External services handled by third-party providers. Service charge applies.
         </p>
         {addonsLoading ? (
           <div className="space-y-3">
@@ -133,7 +133,7 @@ export function AddOnServicesForm({ pkg, onSubmit }: AddOnServicesFormProps) {
                     ) : (
                       <Plus className="w-3 h-3 text-brand-teal" />
                     )}
-                    <span className="font-semibold text-brand-teal">₹{addon.price}</span>
+                    <span className="font-semibold text-brand-teal">₹{addon.price} <span className="text-[10px] font-normal text-muted-foreground">charge</span></span>
                   </div>
                 </motion.label>
               );

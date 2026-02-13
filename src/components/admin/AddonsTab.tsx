@@ -65,7 +65,10 @@ export function AddonsTab() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground">Add-on Services</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Add-on Services</h1>
+          <p className="text-sm text-muted-foreground">External services allocated to third-party providers. We help the customer connect with them.</p>
+        </div>
         <Button variant="hero" onClick={handleCreate}>
           <Plus className="w-4 h-4 mr-2" />
           Add Service
@@ -79,7 +82,7 @@ export function AddonsTab() {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Description</TableHead>
-                <TableHead>Price</TableHead>
+                <TableHead>Service Charge</TableHead>
                 <TableHead>Icon</TableHead>
                 <TableHead>Order</TableHead>
                 <TableHead>Status</TableHead>
