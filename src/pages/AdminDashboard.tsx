@@ -57,6 +57,7 @@ import { StaffManagementTab } from '@/components/admin/StaffManagementTab';
 import { BookingDetailDialog } from '@/components/admin/BookingDetailDialog';
 import { PermissionManagementTab } from '@/components/admin/PermissionManagementTab';
 import { CustomersTab } from '@/components/admin/CustomersTab';
+import { ReportsTab } from '@/components/admin/ReportsTab';
 import type { Booking, BookingStatus } from '@/types/database';
 
 const statusColors: Record<BookingStatus, string> = {
@@ -68,7 +69,7 @@ const statusColors: Record<BookingStatus, string> = {
   cancelled: 'bg-red-100 text-red-800',
 };
 
-type Tab = 'dashboard' | 'bookings' | 'customers' | 'staff' | 'packages' | 'addons' | 'custom_features' | 'panchayaths' | 'permissions' | 'settings';
+type Tab = 'dashboard' | 'bookings' | 'customers' | 'staff' | 'packages' | 'addons' | 'custom_features' | 'panchayaths' | 'permissions' | 'reports' | 'settings';
 
 function LoginForm({ onLogin }: { onLogin: (email: string, password: string, loginType: 'email' | 'mobile') => Promise<void> }) {
   const [loginType, setLoginType] = useState<'email' | 'mobile'>('email');
@@ -493,6 +494,7 @@ export default function AdminDashboard() {
     { id: 'custom_features' as const, icon: Sparkles, label: 'Custom Features', permTab: 'custom_features' as PermissionTab },
     { id: 'panchayaths' as const, icon: MapPin, label: 'Panchayaths', permTab: 'panchayaths' as PermissionTab },
     ...(role === 'super_admin' ? [{ id: 'permissions' as const, icon: Shield, label: 'Permissions', permTab: null }] : []),
+    { id: 'reports' as const, icon: TrendingUp, label: 'Reports', permTab: 'dashboard' as PermissionTab },
     { id: 'settings' as const, icon: Settings, label: 'Settings', permTab: 'settings' as PermissionTab },
   ];
 
@@ -592,6 +594,7 @@ export default function AdminDashboard() {
         {activeTab === 'custom_features' && canViewTab('custom_features') && <CustomFeaturesTab />}
         {activeTab === 'panchayaths' && canViewTab('panchayaths') && <PanchayathsTab />}
         {activeTab === 'permissions' && role === 'super_admin' && <PermissionManagementTab />}
+        {activeTab === 'reports' && canViewTab('dashboard') && <ReportsTab />}
         {activeTab === 'settings' && canViewTab('settings') && (
           <div className="text-center py-12 text-muted-foreground">
             Settings coming soon...

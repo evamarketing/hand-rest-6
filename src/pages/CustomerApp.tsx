@@ -16,6 +16,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import logo from '@/assets/handrest-logo.jpeg';
 import type { ServiceCategory } from '@/types/database';
+import { Navigate } from 'react-router-dom';
 
 type Screen = 'splash' | 'home' | 'build_service' | 'booking' | 'confirmation' | 'profile';
 
@@ -30,9 +31,14 @@ export default function CustomerApp() {
 
   const { data: categories, isLoading: categoriesLoading } = useServiceCategories();
   const createBooking = useCreateBooking();
-  const { signOut } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Redirect to login if not authenticated
+  if (!authLoading && !user) {
+    return <Navigate to="/" replace />;
+  }
 
   const handleSplashComplete = () => setScreen('home');
 
@@ -146,7 +152,7 @@ export default function CustomerApp() {
                     <User className="w-5 h-5" />
                   </Button>
                 )}
-                <Button variant="ghost" size="icon" onClick={async () => { await signOut(); navigate('/'); }} className="text-muted-foreground">
+                <Button variant="ghost" size="icon" onClick={() => signOut()} className="text-muted-foreground">
                   <LogOut className="w-5 h-5" />
                 </Button>
               </div>
